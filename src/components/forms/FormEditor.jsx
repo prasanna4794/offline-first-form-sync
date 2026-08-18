@@ -1,7 +1,9 @@
 "use client";
 
-import { useState } from "react";
-import { saveForm } from "@/lib/db/indexedDB";
+import { useEffect, useRef, useState } from "react";
+import { saveForm, getForm } from "@/lib/db/indexedDB";
+import { generateFormId } from "@/lib/utils/formId";
+import { useSearchParams } from "next/navigation";
 
 export default function FormEditor() {
 
@@ -27,10 +29,20 @@ export default function FormEditor() {
 
         terms: false
     });
+    const isInitialLoad = useRef(true);
+    const [formId] = useState(() => generateFormId());
 
+    const [saveStatus, setSaveStatus] = useState("Saved");
+    const [createdAt, setCreatedAt] = useState(null);
+    const searchParams = useSearchParams();
+
+    const draftId = searchParams.get("draftId");
+    const activeFormId = draftId || formId;
     const handleChange = (event) => {
 
         const { name, value, type, checked } = event.target;
+
+        setSaveStatus("Saving...");
 
         setFormData((previousData) => ({
             ...previousData,
@@ -45,8 +57,11 @@ export default function FormEditor() {
         try {
 
             const dataToSave = {
-                id: "form-001",
-                ...formData
+                id: activeFormId,
+                status: "draft",
+                createdAt,
+                updatedAt: new Date().toISOString(),
+                data: formData
             };
 
             await saveForm(dataToSave);
@@ -65,13 +80,114 @@ export default function FormEditor() {
 
         }
     };
+    useEffect(() => {
+
+        const loadSavedForm = async () => {
+
+            try {
+
+                const savedForm = await getForm(
+                    draftId || formId
+                );
+                if (savedForm) {
+
+                    setCreatedAt(savedForm.createdAt);
+
+                    setFormData({
+                        fullName: savedForm.data?.fullName || "",
+                        email: savedForm.data?.email || "",
+                        phone: savedForm.data?.phone || "",
+                        dateOfBirth: savedForm.data?.dateOfBirth || "",
+                        gender: savedForm.data?.gender || "",
+                        occupation: savedForm.data?.occupation || "",
+
+                        address: savedForm.data?.address || "",
+                        city: savedForm.data?.city || "",
+                        state: savedForm.data?.state || "",
+                        country: savedForm.data?.country || "",
+                        pincode: savedForm.data?.pincode || "",
+
+                        website: savedForm.data?.website || "",
+                        experience: savedForm.data?.experience || "",
+                        skills: savedForm.data?.skills || "",
+                        priority: savedForm.data?.priority || "",
+                        description: savedForm.data?.description || "",
+
+                        terms: savedForm.data?.terms || false
+                    });
+                }
+
+            } catch (error) {
+
+                console.error(
+                    "Failed to load saved form:",
+                    error
+                );
+
+            } finally {
+
+                isInitialLoad.current = false;
+
+            }
+
+        };
+
+        loadSavedForm();
+
+    }, []);
+
+    useEffect(() => {
+
+        if (isInitialLoad.current) {
+            return;
+        }
+
+        const timer = setTimeout(async () => {
+
+            try {
+
+                const dataToSave = {
+                    id: draftId || formId,
+                    status: "draft",
+                    createdAt,
+                    updatedAt: new Date().toISOString(),
+                    data: formData
+                };
+
+                await saveForm(dataToSave);
+
+                setSaveStatus("Saved");
+
+            } catch (error) {
+
+                console.error(
+                    "Auto-save failed:",
+                    error
+                );
+
+                setSaveStatus("Save failed");
+
+            }
+
+        }, 500);
+
+        return () => {
+            clearTimeout(timer);
+        };
+
+    }, [formData]);
 
     return (
+
         <form
             className="form-editor"
             onSubmit={handleSubmit}
         >
-
+            <div className="save-status">
+                {saveStatus === "Saving..." && "⏳ Saving..."}
+                {saveStatus === "Saved" && "✓ Saved locally"}
+                {saveStatus === "Save failed" && "⚠ Save failed"}
+            </div>
             {/* Personal Information */}
 
             <div className="form-section">
@@ -135,7 +251,17 @@ export default function FormEditor() {
                             name="dateOfBirth"
                             type="date"
                             value={formData.dateOfBirth}
+                            max={new Date(
+                                new Date().setFullYear(new Date().getFullYear() - 18)
+                            )
+                                .toISOString()
+                                .split("T")[0]}
                             onChange={handleChange}
+                            onClick={(e) => {
+                                if (e.target.showPicker) {
+                                    e.target.showPicker();
+                                }
+                            }}
                         />
                     </div>
 

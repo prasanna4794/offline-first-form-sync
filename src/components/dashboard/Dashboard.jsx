@@ -9,7 +9,7 @@ import StatsCards from "./StatsCards";
 export default function Dashboard() {
 
     const [sidebarOpen, setSidebarOpen] = useState(false);
-
+    const [isOpen, setIsOpen] = useState(false);
     const handleMenuClick = () => {
         setSidebarOpen(true);
     };
@@ -22,8 +22,8 @@ export default function Dashboard() {
         <div className="dashboard-layout">
 
             <Sidebar
-                isOpen={sidebarOpen}
-                onClose={handleSidebarClose}
+                isOpen={isOpen}
+                setIsOpen={setIsOpen}
             />
 
             <main className="dashboard-main">

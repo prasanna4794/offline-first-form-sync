@@ -1,13 +1,24 @@
 "use client";
 
-export default function Sidebar({ isOpen, onClose }) {
+export default function Sidebar({ isOpen, setIsOpen }) {
     return (
         <>
+            {/* Navbar Toggler */}
+            <button
+                className="navbar-toggler"
+                type="button"
+                onClick={() => setIsOpen(!isOpen)}
+            >
+                ☰
+            </button>
+
+            {/* Overlay */}
             <div
                 className={`sidebar-overlay ${isOpen ? "show" : ""}`}
-                onClick={onClose}
+                onClick={() => setIsOpen(false)}
             />
 
+            {/* Sidebar */}
             <aside className={`sidebar ${isOpen ? "open" : ""}`}>
 
                 <div className="sidebar-logo">
@@ -21,11 +32,11 @@ export default function Sidebar({ isOpen, onClose }) {
                         📊 Dashboard
                     </a>
 
-                    <a href="#">
+                    <a href="forms">
                         📝 Forms
                     </a>
 
-                    <a href="#">
+                    <a href="drafts">
                         📄 Drafts
                     </a>
 
