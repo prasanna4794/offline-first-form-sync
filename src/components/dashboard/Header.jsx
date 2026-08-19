@@ -1,5 +1,7 @@
 "use client";
 
+import NetworkStatus from "@/components/network/NetworkStatus";
+
 export default function Header({ onMenuClick }) {
     return (
         <header className="header">
@@ -24,10 +26,7 @@ export default function Header({ onMenuClick }) {
 
             </div>
 
-            <div className="network-status">
-                <span className="status-dot"></span>
-                Online
-            </div>
+            <NetworkStatus />
 
         </header>
     );
