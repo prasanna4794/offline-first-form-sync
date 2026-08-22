@@ -80,49 +80,169 @@ export async function addToSyncQueue({
     const db = await openSyncQueueDB();
 
     return new Promise((resolve, reject) => {
+
         const transaction = db.transaction(
             STORE_NAME,
             "readwrite"
         );
 
-        const store = transaction.objectStore(STORE_NAME);
+        const store =
+            transaction.objectStore(
+                STORE_NAME
+            );
 
-        const queueItem = {
-            id: generateTransactionId(),
-
-            formId,
-
-            operation,
-
-            payload,
-
-            priority,
-
-            status: "PENDING",
-
-            retryCount: 0,
-
-            createdAt: new Date().toISOString(),
-
-            updatedAt: new Date().toISOString(),
-
-            lastAttemptAt: null,
-
-            error: null,
-        };
-
-        const request = store.add(queueItem);
+        const request =
+            store.getAll();
 
         request.onsuccess = () => {
-            resolve(queueItem);
+
+            const existingItems =
+                request.result;
+
+            /*
+            |--------------------------------------------------------------------------
+            | Find Existing Pending Transaction
+            |--------------------------------------------------------------------------
+            */
+
+            const existingItem =
+                existingItems.find(
+                    (item) =>
+                        item.formId === formId &&
+                        (
+                            item.status ===
+                                "PENDING" ||
+
+                            item.status ===
+                                "FAILED"
+                        )
+                );
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Update Existing Transaction
+            |--------------------------------------------------------------------------
+            */
+
+            if (existingItem) {
+
+                const updatedItem = {
+
+                    ...existingItem,
+
+                    operation,
+
+                    payload,
+
+                    priority,
+
+                    status: "PENDING",
+
+                    error: null,
+
+                    updatedAt:
+                        new Date().toISOString(),
+
+                };
+
+                const updateRequest =
+                    store.put(updatedItem);
+
+                updateRequest.onsuccess =
+                    () => {
+
+                        resolve(
+                            updatedItem
+                        );
+
+                    };
+
+                updateRequest.onerror =
+                    () => {
+
+                        reject(
+                            updateRequest.error
+                        );
+
+                    };
+
+                return;
+            }
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Create New Transaction
+            |--------------------------------------------------------------------------
+            */
+
+            const queueItem = {
+
+                id:
+                    generateTransactionId(),
+
+                formId,
+
+                operation,
+
+                payload,
+
+                priority,
+
+                status: "PENDING",
+
+                retryCount: 0,
+
+                createdAt:
+                    new Date().toISOString(),
+
+                updatedAt:
+                    new Date().toISOString(),
+
+                lastAttemptAt: null,
+
+                error: null,
+
+            };
+
+
+            const addRequest =
+                store.add(queueItem);
+
+            addRequest.onsuccess =
+                () => {
+
+                    resolve(
+                        queueItem
+                    );
+
+                };
+
+            addRequest.onerror =
+                () => {
+
+                    reject(
+                        addRequest.error
+                    );
+
+                };
         };
+
 
         request.onerror = () => {
-            reject(request.error);
+
+            reject(
+                request.error
+            );
+
         };
 
+
         transaction.oncomplete = () => {
+
             db.close();
+
         };
     });
 }

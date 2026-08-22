@@ -7,6 +7,9 @@ import {
     getAllSyncQueueItems,
     getPendingSyncItems,
 } from "@/lib/sync/syncQueue";
+import {
+    processSyncQueue
+} from "@/lib/sync/syncProcessor";
 
 export default function TestSyncQueue() {
     const [items, setItems] = useState([]);
@@ -124,7 +127,23 @@ export default function TestSyncQueue() {
                         <strong>Retry Count:</strong>{" "}
                         {item.retryCount}
                     </p>
+                    <button
+    onClick={async () => {
+        const result =
+            await processSyncQueue();
+
+        console.log(
+            "Sync Result:",
+            result
+        );
+
+        await loadQueue();
+    }}
+>
+    Sync Pending Items
+</button>
                 </div>
+                
             ))}
         </main>
     );
