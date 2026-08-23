@@ -67,27 +67,20 @@ async function syncTransaction(item) {
     try {
 
         await markSyncing(item.id);
+        await updateFormSyncStatus(
+    item.formId,
+    "SYNCING"
+);
+await updateFormSyncStatus(
+    item.formId,
+    "SYNCED"
+);
 
 await createAuditLog({
-
-    transactionId:
-        item.id,
-
-    formId:
-        item.formId,
-
-    event:
-        "SYNC_RETRY",
-
-    status:
-        "SYNCING",
-
-    message:
-        error.message,
-
-    retryCount:
-        retryCount + 1,
-
+    transactionId: item.id,
+    formId: item.formId,
+    event: "SYNC_COMPLETED",
+    status: "SYNCED",
 });
         /*
         |--------------------------------------------------------------------------

@@ -1,10 +1,10 @@
 const DB_NAME = "offline-form-sync";
 
-const DB_VERSION = 2;
+const DB_VERSION = 3;
 
 const FORM_STORE = "forms";
-
 const AUDIT_STORE = "syncAuditLogs";
+const SYNC_QUEUE_STORE = "syncQueue";
 
 
 export function openDatabase() {
@@ -19,12 +19,13 @@ export function openDatabase() {
 
         request.onupgradeneeded = (event) => {
 
-            const database = event.target.result;
+            const database =
+                event.target.result;
 
 
             /*
             |--------------------------------------------------------------------------
-            | Forms Store
+            | Forms
             |--------------------------------------------------------------------------
             */
 
@@ -46,7 +47,29 @@ export function openDatabase() {
 
             /*
             |--------------------------------------------------------------------------
-            | Sync Audit Logs Store
+            | Sync Queue
+            |--------------------------------------------------------------------------
+            */
+
+            if (
+                !database.objectStoreNames.contains(
+                    SYNC_QUEUE_STORE
+                )
+            ) {
+
+                database.createObjectStore(
+                    SYNC_QUEUE_STORE,
+                    {
+                        keyPath: "id"
+                    }
+                );
+
+            }
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Sync Audit Logs
             |--------------------------------------------------------------------------
             */
 
@@ -102,50 +125,48 @@ export async function saveForm(formData) {
         await openDatabase();
 
 
-    return new Promise(
-        (resolve, reject) => {
+    return new Promise((resolve, reject) => {
 
-            const transaction =
-                database.transaction(
-                    FORM_STORE,
-                    "readwrite"
-                );
-
-
-            const store =
-                transaction.objectStore(
-                    FORM_STORE
-                );
+        const transaction =
+            database.transaction(
+                FORM_STORE,
+                "readwrite"
+            );
 
 
-            const request =
-                store.put(formData);
+        const store =
+            transaction.objectStore(
+                FORM_STORE
+            );
 
 
-            request.onsuccess = () => {
-
-                resolve(formData);
-
-            };
+        const request =
+            store.put(formData);
 
 
-            request.onerror = () => {
+        request.onsuccess = () => {
 
-                reject(
-                    request.error
-                );
+            resolve(formData);
 
-            };
+        };
 
-        }
-    );
+
+        request.onerror = () => {
+
+            reject(
+                request.error
+            );
+
+        };
+
+    });
 
 }
 
 
 /*
 |--------------------------------------------------------------------------
-| Get Single Form
+| Get Form
 |--------------------------------------------------------------------------
 */
 
@@ -155,45 +176,43 @@ export async function getForm(formId) {
         await openDatabase();
 
 
-    return new Promise(
-        (resolve, reject) => {
+    return new Promise((resolve, reject) => {
 
-            const transaction =
-                database.transaction(
-                    FORM_STORE,
-                    "readonly"
-                );
-
-
-            const store =
-                transaction.objectStore(
-                    FORM_STORE
-                );
+        const transaction =
+            database.transaction(
+                FORM_STORE,
+                "readonly"
+            );
 
 
-            const request =
-                store.get(formId);
+        const store =
+            transaction.objectStore(
+                FORM_STORE
+            );
 
 
-            request.onsuccess = () => {
-
-                resolve(
-                    request.result
-                );
-
-            };
+        const request =
+            store.get(formId);
 
 
-            request.onerror = () => {
+        request.onsuccess = () => {
 
-                reject(
-                    request.error
-                );
+            resolve(
+                request.result
+            );
 
-            };
+        };
 
-        }
-    );
+
+        request.onerror = () => {
+
+            reject(
+                request.error
+            );
+
+        };
+
+    });
 
 }
 
@@ -210,45 +229,43 @@ export async function getAllForms() {
         await openDatabase();
 
 
-    return new Promise(
-        (resolve, reject) => {
+    return new Promise((resolve, reject) => {
 
-            const transaction =
-                database.transaction(
-                    FORM_STORE,
-                    "readonly"
-                );
-
-
-            const store =
-                transaction.objectStore(
-                    FORM_STORE
-                );
+        const transaction =
+            database.transaction(
+                FORM_STORE,
+                "readonly"
+            );
 
 
-            const request =
-                store.getAll();
+        const store =
+            transaction.objectStore(
+                FORM_STORE
+            );
 
 
-            request.onsuccess = () => {
-
-                resolve(
-                    request.result
-                );
-
-            };
+        const request =
+            store.getAll();
 
 
-            request.onerror = () => {
+        request.onsuccess = () => {
 
-                reject(
-                    request.error
-                );
+            resolve(
+                request.result
+            );
 
-            };
+        };
 
-        }
-    );
+
+        request.onerror = () => {
+
+            reject(
+                request.error
+            );
+
+        };
+
+    });
 
 }
 
@@ -265,45 +282,50 @@ export async function deleteForm(formId) {
         await openDatabase();
 
 
-    return new Promise(
-        (resolve, reject) => {
+    return new Promise((resolve, reject) => {
 
-            const transaction =
-                database.transaction(
-                    FORM_STORE,
-                    "readwrite"
-                );
-
-
-            const store =
-                transaction.objectStore(
-                    FORM_STORE
-                );
+        const transaction =
+            database.transaction(
+                FORM_STORE,
+                "readwrite"
+            );
 
 
-            const request =
-                store.delete(formId);
+        const store =
+            transaction.objectStore(
+                FORM_STORE
+            );
 
 
-            request.onsuccess = () => {
-
-                resolve(true);
-
-            };
+        const request =
+            store.delete(formId);
 
 
-            request.onerror = () => {
+        request.onsuccess = () => {
 
-                reject(
-                    request.error
-                );
+            resolve(true);
 
-            };
+        };
 
-        }
-    );
+
+        request.onerror = () => {
+
+            reject(
+                request.error
+            );
+
+        };
+
+    });
 
 }
+
+
+/*
+|--------------------------------------------------------------------------
+| Update Form Sync Status
+|--------------------------------------------------------------------------
+*/
 
 export async function updateFormSyncStatus(
     formId,
@@ -314,81 +336,78 @@ export async function updateFormSyncStatus(
         await openDatabase();
 
 
-    return new Promise(
-        (resolve, reject) => {
+    return new Promise((resolve, reject) => {
 
-            const transaction =
-                database.transaction(
-                    FORM_STORE,
-                    "readwrite"
-                );
-
-
-            const store =
-                transaction.objectStore(
-                    FORM_STORE
-                );
+        const transaction =
+            database.transaction(
+                FORM_STORE,
+                "readwrite"
+            );
 
 
-            const request =
-                store.get(formId);
+        const store =
+            transaction.objectStore(
+                FORM_STORE
+            );
 
 
-            request.onsuccess = () => {
-
-                const form =
-                    request.result;
+        const request =
+            store.get(formId);
 
 
-                if (!form) {
+        request.onsuccess = () => {
 
-                    resolve(null);
-
-                    return;
-
-                }
+            const form =
+                request.result;
 
 
-                form.status =
-                    status;
+            if (!form) {
 
-                form.updatedAt =
-                    new Date().toISOString();
+                resolve(null);
 
+                return;
 
-                const updateRequest =
-                    store.put(form);
+            }
 
 
-                updateRequest.onsuccess =
-                    () => {
-
-                        resolve(form);
-
-                    };
+            form.status =
+                status;
 
 
-                updateRequest.onerror =
-                    () => {
+            form.updatedAt =
+                new Date().toISOString();
 
-                        reject(
-                            updateRequest.error
-                        );
 
-                    };
+            const updateRequest =
+                store.put(form);
+
+
+            updateRequest.onsuccess = () => {
+
+                resolve(form);
 
             };
 
 
-            request.onerror = () => {
+            updateRequest.onerror = () => {
 
                 reject(
-                    request.error
+                    updateRequest.error
                 );
 
             };
 
-        }
-    );
+        };
+
+
+        request.onerror = () => {
+
+            reject(
+                request.error
+            );
+
+        };
+
+    });
 
 }

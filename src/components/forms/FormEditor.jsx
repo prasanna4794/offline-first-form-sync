@@ -155,7 +155,16 @@ export default function FormEditor() {
         |--------------------------------------------------------------------------
         */
 
-        await saveForm(dataToSave);
+       await saveForm(dataToSave);
+
+await addToSyncQueue({
+    id: `sync-${activeFormId}`,
+    formId: activeFormId,
+    operation: "UPSERT",
+    payload: dataToSave,
+    priority: "MEDIUM",
+    status: navigator.onLine ? "SYNCING" : "PENDING",
+});
 
 
         /*

@@ -1,6 +1,8 @@
 const DB_NAME = "offline-form-sync";
-const DB_VERSION = 2;
+const DB_VERSION = 3;
+
 const STORE_NAME = "syncQueue";
+
 
 /*
 |--------------------------------------------------------------------------
@@ -8,225 +10,46 @@ const STORE_NAME = "syncQueue";
 |--------------------------------------------------------------------------
 */
 
-function openSyncQueueDB() {
-    return new Promise((resolve, reject) => {
-        const request = indexedDB.open(DB_NAME, DB_VERSION);
-
-        request.onupgradeneeded = (event) => {
-            const db = event.target.result;
-
-            /*
-             * Do not remove existing object stores.
-             * We only create syncQueue if it does not already exist.
-             */
-
-            if (!db.objectStoreNames.contains(STORE_NAME)) {
-                const store = db.createObjectStore(STORE_NAME, {
-                    keyPath: "id",
-                });
-
-                store.createIndex("status", "status", {
-                    unique: false,
-                });
-
-                store.createIndex("priority", "priority", {
-                    unique: false,
-                });
-
-                store.createIndex("createdAt", "createdAt", {
-                    unique: false,
-                });
-
-                store.createIndex("formId", "formId", {
-                    unique: false,
-                });
-            }
-        };
-
-        request.onsuccess = () => {
-            resolve(request.result);
-        };
-
-        request.onerror = () => {
-            reject(request.error);
-        };
-    });
-}
-
-/*
-|--------------------------------------------------------------------------
-| Generate Transaction ID
-|--------------------------------------------------------------------------
-*/
-
-function generateTransactionId() {
-    return `sync-${Date.now()}-${Math.random()
-        .toString(36)
-        .substring(2, 8)}`;
-}
-
-/*
-|--------------------------------------------------------------------------
-| Add Transaction To Queue
-|--------------------------------------------------------------------------
-*/
-
-export async function addToSyncQueue({
-    formId,
-    operation = "UPDATE",
-    payload,
-    priority = "MEDIUM",
-}) {
-    const db = await openSyncQueueDB();
+export function openSyncQueueDB() {
 
     return new Promise((resolve, reject) => {
 
-        const transaction = db.transaction(
-            STORE_NAME,
-            "readwrite"
+        const request = indexedDB.open(
+            DB_NAME,
+            DB_VERSION
         );
 
-        const store =
-            transaction.objectStore(
-                STORE_NAME
-            );
 
-        const request =
-            store.getAll();
+        request.onupgradeneeded = (event) => {
+
+            const database =
+                event.target.result;
+
+
+            if (
+                !database.objectStoreNames.contains(
+                    STORE_NAME
+                )
+            ) {
+
+                database.createObjectStore(
+                    STORE_NAME,
+                    {
+                        keyPath: "id"
+                    }
+                );
+
+            }
+
+        };
+
 
         request.onsuccess = () => {
 
-            const existingItems =
-                request.result;
+            resolve(
+                request.result
+            );
 
-            /*
-            |--------------------------------------------------------------------------
-            | Find Existing Pending Transaction
-            |--------------------------------------------------------------------------
-            */
-
-            const existingItem =
-                existingItems.find(
-                    (item) =>
-                        item.formId === formId &&
-                        (
-                            item.status ===
-                                "PENDING" ||
-
-                            item.status ===
-                                "FAILED"
-                        )
-                );
-
-
-            /*
-            |--------------------------------------------------------------------------
-            | Update Existing Transaction
-            |--------------------------------------------------------------------------
-            */
-
-            if (existingItem) {
-
-                const updatedItem = {
-
-                    ...existingItem,
-
-                    operation,
-
-                    payload,
-
-                    priority,
-
-                    status: "PENDING",
-
-                    error: null,
-
-                    updatedAt:
-                        new Date().toISOString(),
-
-                };
-
-                const updateRequest =
-                    store.put(updatedItem);
-
-                updateRequest.onsuccess =
-                    () => {
-
-                        resolve(
-                            updatedItem
-                        );
-
-                    };
-
-                updateRequest.onerror =
-                    () => {
-
-                        reject(
-                            updateRequest.error
-                        );
-
-                    };
-
-                return;
-            }
-
-
-            /*
-            |--------------------------------------------------------------------------
-            | Create New Transaction
-            |--------------------------------------------------------------------------
-            */
-
-            const queueItem = {
-
-                id:
-                    generateTransactionId(),
-
-                formId,
-
-                operation,
-
-                payload,
-
-                priority,
-
-                status: "PENDING",
-
-                retryCount: 0,
-
-                createdAt:
-                    new Date().toISOString(),
-
-                updatedAt:
-                    new Date().toISOString(),
-
-                lastAttemptAt: null,
-
-                error: null,
-
-            };
-
-
-            const addRequest =
-                store.add(queueItem);
-
-            addRequest.onsuccess =
-                () => {
-
-                    resolve(
-                        queueItem
-                    );
-
-                };
-
-            addRequest.onerror =
-                () => {
-
-                    reject(
-                        addRequest.error
-                    );
-
-                };
         };
 
 
@@ -238,179 +61,204 @@ export async function addToSyncQueue({
 
         };
 
-
-        transaction.oncomplete = () => {
-
-            db.close();
-
-        };
     });
+
 }
+
 
 /*
 |--------------------------------------------------------------------------
-| Get All Queue Items
+| Add Item To Sync Queue
 |--------------------------------------------------------------------------
 */
 
-export async function getAllSyncQueueItems() {
-    const db = await openSyncQueueDB();
+export async function addToSyncQueue({
+
+    id,
+
+    formId,
+
+    operation = "CREATE",
+
+    payload,
+
+    priority = "MEDIUM",
+
+}) {
+
+    const database =
+        await openSyncQueueDB();
+
 
     return new Promise((resolve, reject) => {
-        const transaction = db.transaction(
-            STORE_NAME,
-            "readonly"
-        );
 
-        const store = transaction.objectStore(STORE_NAME);
+        const transaction =
+            database.transaction(
+                STORE_NAME,
+                "readwrite"
+            );
 
-        const request = store.getAll();
+
+        const store =
+            transaction.objectStore(
+                STORE_NAME
+            );
+
+
+        const queueItem = {
+
+            id,
+
+            formId,
+
+            operation,
+
+            payload,
+
+            priority,
+
+            status: "PENDING",
+
+            retryCount: 0,
+
+            createdAt:
+                new Date().toISOString(),
+
+            updatedAt:
+                new Date().toISOString(),
+
+        };
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | put() prevents duplicate queue IDs
+        |--------------------------------------------------------------------------
+        */
+
+        const request =
+            store.put(queueItem);
+
 
         request.onsuccess = () => {
-            const items = request.result;
 
-            items.sort((a, b) => {
-                return (
-                    new Date(a.createdAt) -
-                    new Date(b.createdAt)
-                );
-            });
+            resolve(
+                queueItem
+            );
 
-            resolve(items);
         };
+
 
         request.onerror = () => {
-            reject(request.error);
+
+            reject(
+                request.error
+            );
+
         };
 
-        transaction.oncomplete = () => {
-            db.close();
-        };
     });
+
 }
+
 
 /*
 |--------------------------------------------------------------------------
-| Get Pending Queue Items
+| Get Pending Sync Items
 |--------------------------------------------------------------------------
 */
 
 export async function getPendingSyncItems() {
-    const items = await getAllSyncQueueItems();
 
-    const priorityWeight = {
-        HIGH: 1,
-        MEDIUM: 2,
-        LOW: 3,
-    };
+    const database =
+        await openSyncQueueDB();
 
-    return items
-        .filter((item) => item.status === "PENDING")
-        .sort((a, b) => {
-            const priorityA =
-                priorityWeight[a.priority] || 99;
-
-            const priorityB =
-                priorityWeight[b.priority] || 99;
-
-            if (priorityA !== priorityB) {
-                return priorityA - priorityB;
-            }
-
-            return (
-                new Date(a.createdAt) -
-                new Date(b.createdAt)
-            );
-        });
-}
-
-/*
-|--------------------------------------------------------------------------
-| Update Queue Item
-|--------------------------------------------------------------------------
-*/
-
-export async function updateSyncQueueItem(
-    id,
-    updates
-) {
-    const db = await openSyncQueueDB();
 
     return new Promise((resolve, reject) => {
-        const transaction = db.transaction(
-            STORE_NAME,
-            "readwrite"
-        );
 
-        const store = transaction.objectStore(STORE_NAME);
+        const transaction =
+            database.transaction(
+                STORE_NAME,
+                "readonly"
+            );
 
-        const request = store.get(id);
+
+        const store =
+            transaction.objectStore(
+                STORE_NAME
+            );
+
+
+        const request =
+            store.getAll();
+
 
         request.onsuccess = () => {
-            const existingItem = request.result;
 
-            if (!existingItem) {
-                reject(
-                    new Error(
-                        `Sync queue item not found: ${id}`
-                    )
+            const items =
+                request.result.filter(
+                    (item) =>
+                        item.status === "PENDING"
                 );
 
-                return;
-            }
 
-            const updatedItem = {
-                ...existingItem,
+            resolve(items);
 
-                ...updates,
-
-                updatedAt: new Date().toISOString(),
-            };
-
-            store.put(updatedItem);
-
-            resolve(updatedItem);
         };
+
 
         request.onerror = () => {
-            reject(request.error);
+
+            reject(
+                request.error
+            );
+
         };
 
-        transaction.oncomplete = () => {
-            db.close();
-        };
     });
+
 }
+
 
 /*
 |--------------------------------------------------------------------------
-| Mark Item As Syncing
+| Mark Syncing
 |--------------------------------------------------------------------------
 */
 
-export async function markSyncing(id) {
-    return updateSyncQueueItem(id, {
-        status: "SYNCING",
-        lastAttemptAt: new Date().toISOString(),
-    });
+export async function markSyncing(
+    id
+) {
+
+    return updateSyncStatus(
+        id,
+        "SYNCING"
+    );
+
 }
+
 
 /*
 |--------------------------------------------------------------------------
-| Mark Item As Synced
+| Mark Synced
 |--------------------------------------------------------------------------
 */
 
-export async function markSynced(id) {
-    return updateSyncQueueItem(id, {
-        status: "SYNCED",
-        error: null,
-    });
+export async function markSynced(
+    id
+) {
+
+    return updateSyncStatus(
+        id,
+        "SYNCED"
+    );
+
 }
+
 
 /*
 |--------------------------------------------------------------------------
-| Mark Item As Failed
+| Mark Sync Failed
 |--------------------------------------------------------------------------
 */
 
@@ -418,73 +266,285 @@ export async function markSyncFailed(
     id,
     errorMessage
 ) {
-    const items = await getAllSyncQueueItems();
 
-    const item = items.find(
-        (queueItem) => queueItem.id === id
-    );
+    const database =
+        await openSyncQueueDB();
 
-    const retryCount =
-        (item?.retryCount || 0) + 1;
-
-    return updateSyncQueueItem(id, {
-        status: "FAILED",
-
-        retryCount,
-
-        error: errorMessage,
-    });
-}
-
-/*
-|--------------------------------------------------------------------------
-| Delete Queue Item
-|--------------------------------------------------------------------------
-*/
-
-export async function deleteSyncQueueItem(id) {
-    const db = await openSyncQueueDB();
 
     return new Promise((resolve, reject) => {
-        const transaction = db.transaction(
-            STORE_NAME,
-            "readwrite"
-        );
 
-        const store = transaction.objectStore(STORE_NAME);
+        const transaction =
+            database.transaction(
+                STORE_NAME,
+                "readwrite"
+            );
 
-        const request = store.delete(id);
+
+        const store =
+            transaction.objectStore(
+                STORE_NAME
+            );
+
+
+        const request =
+            store.get(id);
+
 
         request.onsuccess = () => {
-            resolve(true);
+
+            const item =
+                request.result;
+
+
+            if (!item) {
+
+                resolve(null);
+
+                return;
+
+            }
+
+
+            item.status =
+                "FAILED";
+
+
+            item.error =
+                errorMessage;
+
+
+            item.updatedAt =
+                new Date().toISOString();
+
+
+            const updateRequest =
+                store.put(item);
+
+
+            updateRequest.onsuccess = () => {
+
+                resolve(item);
+
+            };
+
+
+            updateRequest.onerror = () => {
+
+                reject(
+                    updateRequest.error
+                );
+
+            };
+
         };
+
 
         request.onerror = () => {
-            reject(request.error);
+
+            reject(
+                request.error
+            );
+
         };
 
-        transaction.oncomplete = () => {
-            db.close();
-        };
     });
+
 }
+
 
 /*
 |--------------------------------------------------------------------------
-| Clear Successfully Synced Items
+| Update Sync Status
 |--------------------------------------------------------------------------
 */
 
-export async function clearSyncedItems() {
-    const items = await getAllSyncQueueItems();
+async function updateSyncStatus(
+    id,
+    status
+) {
 
-    const syncedItems = items.filter(
-        (item) => item.status === "SYNCED"
-    );
+    const database =
+        await openSyncQueueDB();
 
-    for (const item of syncedItems) {
-        await deleteSyncQueueItem(item.id);
-    }
 
-    return syncedItems.length;
+    return new Promise((resolve, reject) => {
+
+        const transaction =
+            database.transaction(
+                STORE_NAME,
+                "readwrite"
+            );
+
+
+        const store =
+            transaction.objectStore(
+                STORE_NAME
+            );
+
+
+        const request =
+            store.get(id);
+
+
+        request.onsuccess = () => {
+
+            const item =
+                request.result;
+
+
+            if (!item) {
+
+                resolve(null);
+
+                return;
+
+            }
+
+
+            item.status =
+                status;
+
+
+            item.updatedAt =
+                new Date().toISOString();
+
+
+            const updateRequest =
+                store.put(item);
+
+
+            updateRequest.onsuccess = () => {
+
+                resolve(item);
+
+            };
+
+
+            updateRequest.onerror = () => {
+
+                reject(
+                    updateRequest.error
+                );
+
+            };
+
+        };
+
+
+        request.onerror = () => {
+
+            reject(
+                request.error
+            );
+
+        };
+
+    });
+
+}
+
+
+/*
+|--------------------------------------------------------------------------
+| Get All Sync Items
+|--------------------------------------------------------------------------
+*/
+
+export async function getAllSyncItems() {
+
+    const database =
+        await openSyncQueueDB();
+
+
+    return new Promise((resolve, reject) => {
+
+        const transaction =
+            database.transaction(
+                STORE_NAME,
+                "readonly"
+            );
+
+
+        const store =
+            transaction.objectStore(
+                STORE_NAME
+            );
+
+
+        const request =
+            store.getAll();
+
+
+        request.onsuccess = () => {
+
+            resolve(
+                request.result
+            );
+
+        };
+
+
+        request.onerror = () => {
+
+            reject(
+                request.error
+            );
+
+        };
+
+    });
+
+}
+
+
+/*
+|--------------------------------------------------------------------------
+| Delete Sync Item
+|--------------------------------------------------------------------------
+*/
+
+export async function deleteSyncItem(
+    id
+) {
+
+    const database =
+        await openSyncQueueDB();
+
+
+    return new Promise((resolve, reject) => {
+
+        const transaction =
+            database.transaction(
+                STORE_NAME,
+                "readwrite"
+            );
+
+
+        const store =
+            transaction.objectStore(
+                STORE_NAME
+            );
+
+
+        const request =
+            store.delete(id);
+
+
+        request.onsuccess = () => {
+
+            resolve(true);
+
+        };
+
+
+        request.onerror = () => {
+
+            reject(
+                request.error
+            );
+
+        };
+
+    });
+
 }
