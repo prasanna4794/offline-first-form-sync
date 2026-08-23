@@ -4,7 +4,9 @@ import {
     markSynced,
     markSyncFailed,
 } from "@/lib/sync/syncQueue";
-
+import {
+    updateFormSyncStatus
+} from "@/lib/db/indexedDB";
 import {
     createAuditLog
 } from "@/lib/sync/auditLog";
@@ -13,6 +15,7 @@ import {
 | Retry Configuration
 |--------------------------------------------------------------------------
 */
+let isSyncing = false;
 
 const BASE_DELAY = 1000; // 1 second
 
@@ -74,13 +77,16 @@ await createAuditLog({
         item.formId,
 
     event:
-        "SYNC_STARTED",
+        "SYNC_RETRY",
 
     status:
         "SYNCING",
 
+    message:
+        error.message,
+
     retryCount:
-        item.retryCount || 0,
+        retryCount + 1,
 
 });
         /*
@@ -254,6 +260,37 @@ await createAuditLog({
 
 export async function processSyncQueue() {
 
+    /*
+    |--------------------------------------------------------------------------
+    | Prevent Multiple Sync Processes
+    |--------------------------------------------------------------------------
+    */
+
+    if (isSyncing) {
+
+        console.log(
+            "Sync already running. Skipping duplicate call."
+        );
+
+        return {
+
+            success: true,
+
+            synced: 0,
+
+            reason: "already-syncing",
+
+        };
+
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Check Network
+    |--------------------------------------------------------------------------
+    */
+
     if (!navigator.onLine) {
 
         console.log(
@@ -261,90 +298,148 @@ export async function processSyncQueue() {
         );
 
         return {
+
             success: false,
 
             synced: 0,
 
             reason: "offline",
+
         };
+
     }
-
-
-    const pendingItems =
-        await getPendingSyncItems();
-const priorityOrder = {
-    HIGH: 1,
-    MEDIUM: 2,
-    LOW: 3,
-};
-
-pendingItems.sort((a, b) => {
-
-    const priorityA =
-        priorityOrder[a.priority] || 2;
-
-    const priorityB =
-        priorityOrder[b.priority] || 2;
-
-    return priorityA - priorityB;
-});
-
-    if (pendingItems.length === 0) {
-
-        console.log(
-            "No pending sync items."
-        );
-
-        return {
-            success: true,
-
-            synced: 0,
-        };
-    }
-
-
-    let syncedCount = 0;
 
 
     /*
     |--------------------------------------------------------------------------
-    | Process Transactions In Priority Order
+    | Lock Sync Processor
     |--------------------------------------------------------------------------
     */
 
-    for (
-        const item
-        of pendingItems
-    ) {
+    isSyncing = true;
 
-        const result =
-            await syncTransaction(
-                item
+
+    try {
+
+        const pendingItems =
+            await getPendingSyncItems();
+
+
+        const priorityOrder = {
+
+            HIGH: 1,
+
+            MEDIUM: 2,
+
+            LOW: 3,
+
+        };
+
+
+        pendingItems.sort((a, b) => {
+
+            const priorityA =
+                priorityOrder[a.priority] || 2;
+
+            const priorityB =
+                priorityOrder[b.priority] || 2;
+
+
+            return priorityA - priorityB;
+
+        });
+
+
+        if (pendingItems.length === 0) {
+
+            console.log(
+                "No pending sync items."
             );
 
+            return {
 
-        if (result.success) {
+                success: true,
 
-            syncedCount++;
+                synced: 0,
+
+            };
 
         }
 
+
+        let syncedCount = 0;
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Process One By One
+        |--------------------------------------------------------------------------
+        */
+
+        for (
+            const item
+            of pendingItems
+        ) {
+
+            /*
+            |--------------------------------------------------------------
+            | Internet may disappear while syncing
+            |--------------------------------------------------------------
+            */
+
+            if (!navigator.onLine) {
+
+                console.log(
+                    "Internet disconnected during sync."
+                );
+
+                break;
+
+            }
+
+
+            const result =
+                await syncTransaction(
+                    item
+                );
+
+
+            if (result.success) {
+
+                syncedCount++;
+
+            }
+
+        }
+
+
+        console.log(
+            `Sync completed. ${syncedCount} item(s) synced.`
+        );
+
+
+        return {
+
+            success: true,
+
+            synced: syncedCount,
+
+            total:
+                pendingItems.length,
+
+        };
+
+    } finally {
+
+        /*
+        |--------------------------------------------------------------------------
+        | Always Release Lock
+        |--------------------------------------------------------------------------
+        */
+
+        isSyncing = false;
+
     }
 
-
-    console.log(
-        `Sync completed. ${syncedCount} item(s) synced.`
-    );
-
-
-    return {
-
-        success: true,
-
-        synced: syncedCount,
-
-        total:
-            pendingItems.length,
-
-    };
 }
+

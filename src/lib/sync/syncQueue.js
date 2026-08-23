@@ -1,4 +1,4 @@
-const DB_NAME = "offline-first-form-db";
+const DB_NAME = "offline-form-sync";
 const DB_VERSION = 2;
 const STORE_NAME = "syncQueue";
 

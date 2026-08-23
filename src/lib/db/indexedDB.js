@@ -304,3 +304,91 @@ export async function deleteForm(formId) {
     );
 
 }
+
+export async function updateFormSyncStatus(
+    formId,
+    status
+) {
+
+    const database =
+        await openDatabase();
+
+
+    return new Promise(
+        (resolve, reject) => {
+
+            const transaction =
+                database.transaction(
+                    FORM_STORE,
+                    "readwrite"
+                );
+
+
+            const store =
+                transaction.objectStore(
+                    FORM_STORE
+                );
+
+
+            const request =
+                store.get(formId);
+
+
+            request.onsuccess = () => {
+
+                const form =
+                    request.result;
+
+
+                if (!form) {
+
+                    resolve(null);
+
+                    return;
+
+                }
+
+
+                form.status =
+                    status;
+
+                form.updatedAt =
+                    new Date().toISOString();
+
+
+                const updateRequest =
+                    store.put(form);
+
+
+                updateRequest.onsuccess =
+                    () => {
+
+                        resolve(form);
+
+                    };
+
+
+                updateRequest.onerror =
+                    () => {
+
+                        reject(
+                            updateRequest.error
+                        );
+
+                    };
+
+            };
+
+
+            request.onerror = () => {
+
+                reject(
+                    request.error
+                );
+
+            };
+
+        }
+    );
+
+}

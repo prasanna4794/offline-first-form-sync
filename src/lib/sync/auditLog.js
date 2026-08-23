@@ -3,8 +3,7 @@ import {
 } from "@/lib/db/indexedDB";
 
 
-const AUDIT_STORE =
-    "syncAuditLogs";
+const AUDIT_STORE = "syncAuditLogs";
 
 
 export async function createAuditLog({
@@ -43,36 +42,76 @@ export async function createAuditLog({
                 );
 
 
-            const log = {
-
-                id:
-                    `${transactionId}-${Date.now()}`,
-
-                transactionId,
-
-                formId,
-
-                event,
-
-                status,
-
-                message,
-
-                retryCount,
-
-                timestamp:
-                    new Date().toISOString(),
-
-            };
-
+            /*
+            |--------------------------------------------------------------------------
+            | Use transactionId as the Audit ID
+            |--------------------------------------------------------------------------
+            |
+            | One transaction = One audit record.
+            |
+            */
 
             const request =
-                store.add(log);
+                store.get(transactionId);
 
 
             request.onsuccess = () => {
 
-                resolve(log);
+                const existingLog =
+                    request.result;
+
+
+                const log = {
+
+                    id:
+                        transactionId,
+
+                    transactionId,
+
+                    formId,
+
+                    event,
+
+                    status,
+
+                    message,
+
+                    retryCount,
+
+                    timestamp:
+                        existingLog?.timestamp ||
+                        new Date().toISOString(),
+
+                    updatedAt:
+                        new Date().toISOString(),
+
+                };
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | put() = Create OR Update
+                |--------------------------------------------------------------------------
+                */
+
+                const saveRequest =
+                    store.put(log);
+
+
+                saveRequest.onsuccess = () => {
+
+                    resolve(log);
+
+                };
+
+
+                saveRequest.onerror = () => {
+
+                    reject(
+                        saveRequest.error
+                    );
+
+                };
 
             };
 
