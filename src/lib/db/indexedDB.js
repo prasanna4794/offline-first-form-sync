@@ -159,6 +159,22 @@ export async function saveForm(formData) {
 
         };
 
+        request.onsuccess = () => {
+
+    if (typeof window !== "undefined") {
+
+        window.dispatchEvent(
+            new Event(
+                "dashboard-stats-updated"
+            )
+        );
+
+    }
+
+    resolve(formData);
+
+};
+
     });
 
 }
@@ -315,6 +331,21 @@ export async function deleteForm(formId) {
             );
 
         };
+        request.onsuccess = () => {
+
+    if (typeof window !== "undefined") {
+
+        window.dispatchEvent(
+            new Event(
+                "dashboard-stats-updated"
+            )
+        );
+
+    }
+
+    resolve(true);
+
+};
 
     });
 

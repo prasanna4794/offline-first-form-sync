@@ -128,3 +128,62 @@ export async function createAuditLog({
     );
 
 }
+
+export async function getAllAuditLogs() {
+
+    const database =
+        await openDatabase();
+
+
+    return new Promise(
+
+        (resolve, reject) => {
+
+            const transaction =
+                database.transaction(
+
+                    AUDIT_STORE,
+
+                    "readonly"
+
+                );
+
+
+            const store =
+                transaction.objectStore(
+
+                    AUDIT_STORE
+
+                );
+
+
+            const request =
+                store.getAll();
+
+
+            request.onsuccess = () => {
+
+                resolve(
+
+                    request.result
+
+                );
+
+            };
+
+
+            request.onerror = () => {
+
+                reject(
+
+                    request.error
+
+                );
+
+            };
+
+        }
+
+    );
+
+}

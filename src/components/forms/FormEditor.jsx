@@ -130,76 +130,62 @@ export default function FormEditor() {
             createdAt || now;
 
 
-        /*
-        |--------------------------------------------------------------------------
-        | Local Draft
-        |--------------------------------------------------------------------------
-        */
-
         const dataToSave = {
+
             id: activeFormId,
 
-            status: "draft",
+            status:
+                navigator.onLine
+                    ? "PENDING"
+                    : "PENDING",
 
             createdAt: finalCreatedAt,
 
             updatedAt: now,
 
             data: formData
+
         };
 
 
-        /*
-        |--------------------------------------------------------------------------
-        | Save To IndexedDB Draft Store
-        |--------------------------------------------------------------------------
-        */
+        await saveForm(
+            dataToSave
+        );
 
-       await saveForm(dataToSave);
-
-await addToSyncQueue({
-    id: `sync-${activeFormId}`,
-    formId: activeFormId,
-    operation: "UPSERT",
-    payload: dataToSave,
-    priority: "MEDIUM",
-    status: navigator.onLine ? "SYNCING" : "PENDING",
-});
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | Update Created Time For New Forms
-        |--------------------------------------------------------------------------
-        */
-
-        if (!createdAt) {
-            setCreatedAt(finalCreatedAt);
-        }
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | Add Transaction To Sync Queue
-        |--------------------------------------------------------------------------
-        */
 
         await addToSyncQueue({
 
-            formId: activeFormId,
+            id:
+                `sync-${activeFormId}`,
 
-            operation: draftId
-                ? "UPDATE"
-                : "CREATE",
+            formId:
+                activeFormId,
 
-            payload: dataToSave,
+            operation:
+                draftId
+                    ? "UPDATE"
+                    : "CREATE",
 
-            priority: getSyncPriority()
+            payload:
+                dataToSave,
+
+            priority:
+                getSyncPriority()
 
         });
 
 
+        if (!createdAt) {
+
+            setCreatedAt(
+                finalCreatedAt
+            );
+
+        }
+
+
         return dataToSave;
+
     };
 
 
@@ -449,25 +435,6 @@ await addToSyncQueue({
                 | Add To Sync Queue
                 |--------------------------------------------------------------------------
                 */
-
-                await addToSyncQueue({
-
-                    formId:
-                        activeFormId,
-
-                    operation:
-                        draftId
-                            ? "UPDATE"
-                            : "CREATE",
-
-                    payload:
-                        dataToSave,
-
-                    priority:
-                        getSyncPriority()
-                });
-
-
                 setSaveStatus("Saved");
 
             } catch (error) {
@@ -502,7 +469,7 @@ await addToSyncQueue({
 
     const handleBackToDashboard = () => {
 
-        router.push("/dashboard");
+        router.push("/");
 
     };
 
@@ -514,30 +481,28 @@ await addToSyncQueue({
             {/* Back Navigation */}
 
             <div className="form-page-header">
+                     <div>
+                    <h1>
+                        {draftId
+                            ? "Edit Draft"
+                            : "Create New Form"}
+                    </h1>
 
-                <button
-                    type="button"
-                    className="secondary-button"
-                    onClick={handleBackToDashboard}
-                    style={{
-                        marginBottom: "18px"
-                    }}
-                >
-                    ← Back to Dashboard
-                </button>
-
-                <h1>
-                    {draftId
-                        ? "Edit Draft"
-                        : "Create New Form"}
-                </h1>
-
-                <p>
-                    Fill in the form details.
-                    Your changes are saved locally
-                    and prepared for synchronization.
-                </p>
-
+                    <p>
+                        Fill in the form details.
+                        Your changes are saved locally
+                        and prepared for synchronization.
+                    </p>
+                </div>
+                <div>
+                    <button
+                        type="button"
+                        className="secondary-button"
+                        onClick={handleBackToDashboard}
+                    >
+                        Back
+                    </button>
+                </div>
             </div>
 
 

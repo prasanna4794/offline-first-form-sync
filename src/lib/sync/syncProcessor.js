@@ -66,79 +66,100 @@ async function syncTransaction(item) {
 
     try {
 
-        await markSyncing(item.id);
-        await updateFormSyncStatus(
-    item.formId,
-    "SYNCING"
-);
-await updateFormSyncStatus(
-    item.formId,
-    "SYNCED"
-);
-
-await createAuditLog({
-    transactionId: item.id,
-    formId: item.formId,
-    event: "SYNC_COMPLETED",
-    status: "SYNCED",
-});
         /*
-        |--------------------------------------------------------------------------
-        | Send Request To Server
-        |--------------------------------------------------------------------------
+        |------------------------------------------
+        | Mark Syncing
+        |------------------------------------------
         */
 
-        const response = await fetch(
-            "/api/sync",
-            {
-                method: "POST",
-
-                headers: {
-                    "Content-Type":
-                        "application/json",
-                },
-
-                body: JSON.stringify({
-
-                    transactionId:
-                        item.id,
-
-                    formId:
-                        item.formId,
-
-                    operation:
-                        item.operation,
-
-                    payload:
-                        item.payload,
-
-                    priority:
-                        item.priority,
-
-                }),
-            }
+        await markSyncing(
+            item.id
         );
 
 
+        await updateFormSyncStatus(
+            item.formId,
+            "SYNCING"
+        );
+
+
+        await createAuditLog({
+
+            transactionId:
+                item.id,
+
+            formId:
+                item.formId,
+
+            event:
+                "SYNC_STARTED",
+
+            status:
+                "SYNCING"
+
+        });
+
+
         /*
-        |--------------------------------------------------------------------------
-        | Server Error
-        |--------------------------------------------------------------------------
+        |------------------------------------------
+        | Send To Server
+        |------------------------------------------
         */
+
+        const response =
+            await fetch(
+                "/api/sync",
+                {
+
+                    method:
+                        "POST",
+
+                    headers: {
+
+                        "Content-Type":
+                            "application/json"
+
+                    },
+
+                    body:
+                        JSON.stringify({
+
+                            transactionId:
+                                item.id,
+
+                            formId:
+                                item.formId,
+
+                            operation:
+                                item.operation,
+
+                            payload:
+                                item.payload,
+
+                            priority:
+                                item.priority
+
+                        })
+
+                }
+            );
+
 
         if (!response.ok) {
 
             throw new Error(
+
                 `Server returned ${response.status}`
+
             );
 
         }
 
 
         /*
-        |--------------------------------------------------------------------------
-        | Successful Sync
-        |--------------------------------------------------------------------------
+        |------------------------------------------
+        | Mark Synced
+        |------------------------------------------
         */
 
         await markSynced(
@@ -146,102 +167,56 @@ await createAuditLog({
         );
 
 
-        console.log(
-            `Successfully synced: ${item.id}`
+        await updateFormSyncStatus(
+            item.formId,
+            "SYNCED"
         );
 
 
+        await createAuditLog({
+
+            transactionId:
+                item.id,
+
+            formId:
+                item.formId,
+
+            event:
+                "SYNC_COMPLETED",
+
+            status:
+                "SYNCED"
+
+        });
+
+
         return {
-            success: true,
+
+            success:
+                true
+
         };
 
     } catch (error) {
 
         console.error(
+
             `Sync failed: ${item.id}`,
+
             error
+
         );
 
 
-        /*
-        |--------------------------------------------------------------------------
-        | Retry Count
-        |--------------------------------------------------------------------------
-        */
+        return {
 
-        const retryCount =
-            item.retryCount || 0;
+            success:
+                false
 
-
-        /*
-        |--------------------------------------------------------------------------
-        | Maximum Retry Check
-        |--------------------------------------------------------------------------
-        */
-
-        if (retryCount >= MAX_RETRIES) {
-
-            await markSyncFailed(
-                item.id,
-                `Maximum retry attempts reached: ${error.message}`
-            );
-
-
-            console.error(
-                `Maximum retries reached for ${item.id}`
-            );
-
-
-            return {
-                success: false,
-
-                permanentlyFailed: true,
-            };
-        }
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | Calculate Backoff
-        |--------------------------------------------------------------------------
-        */
-
-        const delay =
-            calculateRetryDelay(
-                retryCount
-            );
-
-
-        console.log(
-            `Retrying ${item.id} in ${delay}ms`
-        );
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | Wait Before Retry
-        |--------------------------------------------------------------------------
-        */
-
-        await wait(delay);
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | Retry Transaction
-        |--------------------------------------------------------------------------
-        */
-
-        return syncTransaction({
-
-            ...item,
-
-            retryCount:
-                retryCount + 1,
-
-        });
+        };
 
     }
+
 }
 
 

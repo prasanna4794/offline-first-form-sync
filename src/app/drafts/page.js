@@ -16,6 +16,11 @@ export default function DraftsPage() {
     const [searchTerm, setSearchTerm] = useState("");
     const [statusFilter, setStatusFilter] = useState("all");
     const [sortOption, setSortOption] = useState("updated");
+    const handleBackToDashboard = () => {
+
+        router.push("/");
+
+    };
 
     useEffect(() => {
 
@@ -153,11 +158,22 @@ export default function DraftsPage() {
                     <p>
                         Manage your locally saved form drafts.
                     </p>
-                </div>
 
-                <span className="draft-count">
-                    {filteredDrafts.length} Drafts
-                </span>
+                </div>
+<div className="draft-header-actions">
+    <span className="draft-count">
+        {filteredDrafts.length} Drafts
+    </span>
+
+    <button
+        type="button"
+        className="secondary-button"
+        onClick={handleBackToDashboard}
+    >
+        Back
+    </button>
+</div>
+
 
             </div>
             <div className="draft-controls">

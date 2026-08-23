@@ -156,7 +156,21 @@ export async function addToSyncQueue({
             );
 
         };
+request.onsuccess = () => {
 
+    if (typeof window !== "undefined") {
+
+        window.dispatchEvent(
+            new Event(
+                "dashboard-stats-updated"
+            )
+        );
+
+    }
+
+    resolve(queueItem);
+
+};
     });
 
 }
@@ -321,11 +335,21 @@ export async function markSyncFailed(
                 store.put(item);
 
 
-            updateRequest.onsuccess = () => {
+           updateRequest.onsuccess = () => {
 
-                resolve(item);
+    if (typeof window !== "undefined") {
 
-            };
+        window.dispatchEvent(
+            new Event(
+                "dashboard-stats-updated"
+            )
+        );
+
+    }
+
+    resolve(item);
+
+};
 
 
             updateRequest.onerror = () => {
@@ -533,6 +557,96 @@ export async function deleteSyncItem(
         request.onsuccess = () => {
 
             resolve(true);
+
+        };
+
+
+        request.onerror = () => {
+
+            reject(
+                request.error
+            );
+
+        };
+
+    });
+
+}
+
+export async function retrySyncItem(id) {
+
+    const database =
+        await openSyncQueueDB();
+
+
+    return new Promise((resolve, reject) => {
+
+        const transaction =
+            database.transaction(
+                STORE_NAME,
+                "readwrite"
+            );
+
+
+        const store =
+            transaction.objectStore(
+                STORE_NAME
+            );
+
+
+        const request =
+            store.get(id);
+
+
+        request.onsuccess = () => {
+
+            const item =
+                request.result;
+
+
+            if (!item) {
+
+                resolve(null);
+
+                return;
+
+            }
+
+
+            item.status =
+                "PENDING";
+
+
+            item.retryCount =
+                0;
+
+
+            item.error =
+                null;
+
+
+            item.updatedAt =
+                new Date().toISOString();
+
+
+            const updateRequest =
+                store.put(item);
+
+
+            updateRequest.onsuccess = () => {
+
+                resolve(item);
+
+            };
+
+
+            updateRequest.onerror = () => {
+
+                reject(
+                    updateRequest.error
+                );
+
+            };
 
         };
 

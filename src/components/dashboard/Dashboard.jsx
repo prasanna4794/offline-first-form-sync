@@ -6,6 +6,10 @@ import Sidebar from "./Sidebar";
 import Header from "./Header";
 import StatsCards from "./StatsCards";
 
+import SyncStatus from "./SyncStatus";
+
+import RecentActivity from "./RecentActivity";
+
 export default function Dashboard() {
 
     const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -34,29 +38,10 @@ export default function Dashboard() {
 
                 <StatsCards />
 
-                <section className="dashboard-section">
+           <SyncStatus />
 
-                    <h2>Sync Status</h2>
 
-                    <div className="empty-box">
-                        <p>
-                            No synchronization activity yet.
-                        </p>
-                    </div>
-
-                </section>
-
-                <section className="dashboard-section">
-
-                    <h2>Recent Activity</h2>
-
-                    <div className="empty-box">
-                        <p>
-                            No recent activity.
-                        </p>
-                    </div>
-
-                </section>
+                <RecentActivity />
 
             </main>
 
