@@ -25,6 +25,7 @@ import {
 
 } from "@/lib/sync/syncProcessor";
 
+import { useRouter, useSearchParams } from "next/navigation";
 
 export default function SyncQueuePage() {
 
@@ -80,7 +81,13 @@ export default function SyncQueuePage() {
         setSyncing
 
     ] = useState(false);
+        const router = useRouter();
+    
+   const handleBackToDashboard = () => {
 
+        router.push("/");
+
+    };
 
     /*
     |------------------------------------------
@@ -449,8 +456,8 @@ export default function SyncQueuePage() {
 
                 </div>
 
-
-                <button
+ <div className="draft-header-actions">
+ <button
 
                     className="sync-now-button"
 
@@ -471,6 +478,15 @@ export default function SyncQueuePage() {
                     }
 
                 </button>
+                 <button
+                        type="button"
+                        className="secondary-button"
+                        onClick={handleBackToDashboard}
+                    >
+                        Back
+                    </button>
+ </div>
+               
 
             </div>
 
