@@ -41,16 +41,6 @@ export async function createAuditLog({
                     AUDIT_STORE
                 );
 
-
-            /*
-            |--------------------------------------------------------------------------
-            | Use transactionId as the Audit ID
-            |--------------------------------------------------------------------------
-            |
-            | One transaction = One audit record.
-            |
-            */
-
             const request =
                 store.get(transactionId);
 

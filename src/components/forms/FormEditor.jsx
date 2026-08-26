@@ -368,12 +368,6 @@ export default function FormEditor() {
     }, [activeFormId]);
 
 
-    /*
-    |--------------------------------------------------------------------------
-    | Auto Save + Sync Queue
-    |--------------------------------------------------------------------------
-    */
-
     useEffect(() => {
 
         if (isInitialLoad.current) {
@@ -390,13 +384,6 @@ export default function FormEditor() {
 
                 const finalCreatedAt =
                     createdAt || now;
-
-
-                /*
-                |--------------------------------------------------------------------------
-                | Save Local Draft
-                |--------------------------------------------------------------------------
-                */
 
                 const dataToSave = {
 
@@ -416,12 +403,6 @@ export default function FormEditor() {
                 await saveForm(dataToSave);
 
 
-                /*
-                |--------------------------------------------------------------------------
-                | Store Created At For New Form
-                |--------------------------------------------------------------------------
-                */
-
                 if (!createdAt) {
 
                     setCreatedAt(
@@ -429,12 +410,6 @@ export default function FormEditor() {
                     );
                 }
 
-
-                /*
-                |--------------------------------------------------------------------------
-                | Add To Sync Queue
-                |--------------------------------------------------------------------------
-                */
                 setSaveStatus("Saved");
 
             } catch (error) {
@@ -460,13 +435,6 @@ export default function FormEditor() {
 
     }, [formData]);
 
-
-    /*
-    |--------------------------------------------------------------------------
-    | Go Back To Dashboard
-    |--------------------------------------------------------------------------
-    */
-
     const handleBackToDashboard = () => {
 
         router.push("/");
@@ -477,8 +445,6 @@ export default function FormEditor() {
     return (
 
         <main className="form-page">
-
-            {/* Back Navigation */}
 
             <div className="form-page-header">
                      <div>
@@ -511,8 +477,6 @@ export default function FormEditor() {
                 onSubmit={handleSubmit}
             >
 
-                {/* Save Status */}
-
                 <div className="save-status">
 
                     {saveStatus === "Saving..." &&
@@ -525,9 +489,6 @@ export default function FormEditor() {
                         "⚠ Save failed"}
 
                 </div>
-
-
-                {/* Personal Information */}
 
                 <div className="form-section">
 
@@ -680,9 +641,6 @@ export default function FormEditor() {
                     </div>
 
                 </div>
-
-
-                {/* Address Information */}
 
                 <div className="form-section">
 
@@ -946,12 +904,12 @@ export default function FormEditor() {
                     </button>
 
 
-                    <button
+                    {/* <button
                         type="submit"
                         className="primary-button"
                     >
                         Save Form
-                    </button>
+                    </button> */}
 
                 </div>
 

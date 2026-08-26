@@ -22,13 +22,6 @@ export function openDatabase() {
             const database =
                 event.target.result;
 
-
-            /*
-            |--------------------------------------------------------------------------
-            | Forms
-            |--------------------------------------------------------------------------
-            */
-
             if (
                 !database.objectStoreNames.contains(
                     FORM_STORE
@@ -45,12 +38,6 @@ export function openDatabase() {
             }
 
 
-            /*
-            |--------------------------------------------------------------------------
-            | Sync Queue
-            |--------------------------------------------------------------------------
-            */
-
             if (
                 !database.objectStoreNames.contains(
                     SYNC_QUEUE_STORE
@@ -65,13 +52,6 @@ export function openDatabase() {
                 );
 
             }
-
-
-            /*
-            |--------------------------------------------------------------------------
-            | Sync Audit Logs
-            |--------------------------------------------------------------------------
-            */
 
             if (
                 !database.objectStoreNames.contains(
@@ -112,12 +92,6 @@ export function openDatabase() {
 
 }
 
-
-/*
-|--------------------------------------------------------------------------
-| Save Form
-|--------------------------------------------------------------------------
-*/
 
 export async function saveForm(formData) {
 
@@ -179,12 +153,6 @@ export async function saveForm(formData) {
 
 }
 
-
-/*
-|--------------------------------------------------------------------------
-| Get Form
-|--------------------------------------------------------------------------
-*/
 
 export async function getForm(formId) {
 
