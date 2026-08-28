@@ -21,6 +21,8 @@ export default function FormEditor() {
 
     const draftId = searchParams.get("draftId");
 
+    const AUTO_SAVE_DELAY = 500;
+
     const [formData, setFormData] = useState({
         fullName: "",
         email: "",
@@ -374,13 +376,11 @@ export default function FormEditor() {
             return;
         }
 
-
         const timer = setTimeout(async () => {
 
             try {
 
-                const now =
-                    new Date().toISOString();
+                const now = new Date().toISOString();
 
                 const finalCreatedAt =
                     createdAt || now;
@@ -391,23 +391,17 @@ export default function FormEditor() {
 
                     status: "draft",
 
-                    createdAt:
-                        finalCreatedAt,
+                    createdAt: finalCreatedAt,
 
                     updatedAt: now,
 
                     data: formData
                 };
 
-
                 await saveForm(dataToSave);
 
-
                 if (!createdAt) {
-
-                    setCreatedAt(
-                        finalCreatedAt
-                    );
+                    setCreatedAt(finalCreatedAt);
                 }
 
                 setSaveStatus("Saved");
@@ -419,21 +413,17 @@ export default function FormEditor() {
                     error
                 );
 
-                setSaveStatus(
-                    "Save failed"
-                );
+                setSaveStatus("Save failed");
             }
 
-        }, 500);
+        }, AUTO_SAVE_DELAY);
 
 
         return () => {
-
             clearTimeout(timer);
-
         };
 
-    }, [formData]);
+    }, [activeFormId, formData, createdAt]);
 
     const handleBackToDashboard = () => {
 
@@ -447,7 +437,7 @@ export default function FormEditor() {
         <main className="form-page">
 
             <div className="form-page-header">
-                     <div>
+                <div>
                     <h1>
                         {draftId
                             ? "Edit Draft"
