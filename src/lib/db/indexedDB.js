@@ -118,13 +118,6 @@ export async function saveForm(formData) {
             store.put(formData);
 
 
-        request.onsuccess = () => {
-
-            resolve(formData);
-
-        };
-
-
         request.onerror = () => {
 
             reject(
@@ -283,13 +276,6 @@ export async function deleteForm(formId) {
 
         const request =
             store.delete(formId);
-
-
-        request.onsuccess = () => {
-
-            resolve(true);
-
-        };
 
 
         request.onerror = () => {

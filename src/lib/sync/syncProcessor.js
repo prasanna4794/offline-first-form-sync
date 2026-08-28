@@ -4,329 +4,164 @@ import {
     markSynced,
     markSyncFailed,
 } from "@/lib/sync/syncQueue";
-import {
-    updateFormSyncStatus
-} from "@/lib/db/indexedDB";
-import {
-    createAuditLog
-} from "@/lib/sync/auditLog";
+
+import { updateFormSyncStatus } from "@/lib/db/indexedDB";
+import { createAuditLog } from "@/lib/sync/auditLog";
 
 let isSyncing = false;
-
-const BASE_DELAY = 1000; // 1 second
-
+const BASE_DELAY = 1000;
 const MAX_RETRIES = 5;
 
-
 function calculateRetryDelay(retryCount) {
-
-    return (
-        BASE_DELAY *
-        Math.pow(2, retryCount)
-    );
+    return BASE_DELAY * Math.pow(2, retryCount);
 }
-
 
 function wait(milliseconds) {
-
-    return new Promise((resolve) => {
-
-        setTimeout(
-            resolve,
-            milliseconds
-        );
-
-    });
+    return new Promise((resolve) => setTimeout(resolve, milliseconds));
 }
-
 
 async function syncTransaction(item) {
-
     try {
+        console.log("🚀 Starting sync:", item.id);
 
-
-        await markSyncing(
-            item.id
-        );
-
-
-        await updateFormSyncStatus(
-            item.formId,
-            "SYNCING"
-        );
-
+        await markSyncing(item.id);
+        await updateFormSyncStatus(item.formId, "SYNCING");
 
         await createAuditLog({
-
-            transactionId:
-                item.id,
-
-            formId:
-                item.formId,
-
-            event:
-                "SYNC_STARTED",
-
-            status:
-                "SYNCING"
-
+            transactionId: item.id,
+            formId: item.formId,
+            event: "SYNC_STARTED",
+            status: "SYNCING",
+            retryCount: item.retryCount || 0,
         });
 
-
-        const response =
-            await fetch(
-                "/api/sync",
-                {
-
-                    method:
-                        "POST",
-
-                    headers: {
-
-                        "Content-Type":
-                            "application/json"
-
-                    },
-
-                    body:
-                        JSON.stringify({
-
-                            transactionId:
-                                item.id,
-
-                            formId:
-                                item.formId,
-
-                            operation:
-                                item.operation,
-
-                            payload:
-                                item.payload,
-
-                            priority:
-                                item.priority
-
-                        })
-
-                }
-            );
-
-
-        if (!response.ok) {
-
-            throw new Error(
-
-                `Server returned ${response.status}`
-
-            );
-
+        if (!navigator.onLine) {
+            throw new Error("Internet connection lost before API request.");
         }
 
-        await markSynced(
-            item.id
-        );
-
-
-        await updateFormSyncStatus(
-            item.formId,
-            "SYNCED"
-        );
-
-
-        await createAuditLog({
-
-            transactionId:
-                item.id,
-
-            formId:
-                item.formId,
-
-            event:
-                "SYNC_COMPLETED",
-
-            status:
-                "SYNCED"
-
+        const response = await fetch("/api/sync", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                transactionId: item.id,
+                formId: item.formId,
+                operation: item.operation,
+                payload: item.payload,
+                priority: item.priority,
+            }),
         });
 
+        const text = await response.text();
+        let data = null;
+        try {
+            data = text ? JSON.parse(text) : null;
+        } catch {
+            data = { raw: text };
+        }
 
-        return {
+        console.log("🌐 API response:", response.status, data);
 
-            success:
-                true
+        if (!response.ok || data?.success !== true) {
+            throw new Error(data?.message || `Server returned ${response.status}`);
+        }
 
-        };
+        // Only after server confirmation do we mark everything as SYNCED.
+        await markSynced(item.id);
+        await updateFormSyncStatus(item.formId, "SYNCED");
 
+        await createAuditLog({
+            transactionId: item.id,
+            formId: item.formId,
+            event: "SYNC_COMPLETED",
+            status: "SYNCED",
+            retryCount: item.retryCount || 0,
+        });
+
+        console.log("✅ SYNCED:", item.id);
+        return { success: true };
     } catch (error) {
+        console.error("❌ Sync failed:", item.id, error);
 
-        console.error(
+        const retryCount = item.retryCount || 0;
 
-            `Sync failed: ${item.id}`,
+        if (retryCount >= MAX_RETRIES) {
+            await markSyncFailed(item.id, error.message);
+            await updateFormSyncStatus(item.formId, "FAILED");
 
-            error
+            await createAuditLog({
+                transactionId: item.id,
+                formId: item.formId,
+                event: "SYNC_FAILED",
+                status: "FAILED",
+                message: error.message,
+                retryCount,
+            });
 
-        );
+            return { success: false, permanentlyFailed: true };
+        }
 
+        const delay = calculateRetryDelay(retryCount);
+        console.log(`🔁 Retrying ${item.id} in ${delay}ms`);
+        await wait(delay);
 
-        return {
-
-            success:
-                false
-
-        };
-
+        return syncTransaction({
+            ...item,
+            retryCount: retryCount + 1,
+        });
     }
-
 }
 
-
 export async function processSyncQueue() {
-
     if (isSyncing) {
-
-        console.log(
-            "Sync already running. Skipping duplicate call."
-        );
-
-        return {
-
-            success: true,
-
-            synced: 0,
-
-            reason: "already-syncing",
-
-        };
-
+        console.log("Sync already running. Skipping duplicate call.");
+        return { success: true, synced: 0, reason: "already-syncing" };
     }
-    if (!navigator.onLine) {
 
-        console.log(
-            "Offline - sync skipped."
-        );
-
-        return {
-
-            success: false,
-
-            synced: 0,
-
-            reason: "offline",
-
-        };
-
+    if (typeof navigator === "undefined" || !navigator.onLine) {
+        console.log("📴 Offline - sync skipped.");
+        return { success: false, synced: 0, reason: "offline" };
     }
 
     isSyncing = true;
 
-
     try {
+        const pendingItems = await getPendingSyncItems();
 
-        const pendingItems =
-            await getPendingSyncItems();
-
-
-        const priorityOrder = {
-
-            HIGH: 1,
-
-            MEDIUM: 2,
-
-            LOW: 3,
-
-        };
-
-
-        pendingItems.sort((a, b) => {
-
-            const priorityA =
-                priorityOrder[a.priority] || 2;
-
-            const priorityB =
-                priorityOrder[b.priority] || 2;
-
-
-            return priorityA - priorityB;
-
-        });
-
+        console.log("🔎 Pending sync items:", pendingItems);
+        console.log("🔢 Pending count:", pendingItems.length);
 
         if (pendingItems.length === 0) {
-
-            console.log(
-                "No pending sync items."
-            );
-
-            return {
-
-                success: true,
-
-                synced: 0,
-
-            };
-
+            console.log("No pending sync items.");
+            return { success: true, synced: 0 };
         }
 
+        const priorityOrder = { HIGH: 1, MEDIUM: 2, LOW: 3 };
+        pendingItems.sort(
+            (a, b) =>
+                (priorityOrder[a.priority] || 2) -
+                (priorityOrder[b.priority] || 2)
+        );
 
         let syncedCount = 0;
 
-
-
-        for (
-            const item
-            of pendingItems
-        ) {
-
-
+        for (const item of pendingItems) {
             if (!navigator.onLine) {
-
-                console.log(
-                    "Internet disconnected during sync."
-                );
-
+                console.log("📴 Internet disconnected during sync.");
                 break;
-
             }
 
-
-            const result =
-                await syncTransaction(
-                    item
-                );
-
-
-            if (result.success) {
-
-                syncedCount++;
-
-            }
-
+            const result = await syncTransaction(item);
+            if (result.success) syncedCount++;
         }
 
-
-        console.log(
-            `Sync completed. ${syncedCount} item(s) synced.`
-        );
-
+        console.log(`✅ Sync completed. ${syncedCount} item(s) synced.`);
 
         return {
-
             success: true,
-
             synced: syncedCount,
-
-            total:
-                pendingItems.length,
-
+            total: pendingItems.length,
         };
-
     } finally {
-
-    
-
         isSyncing = false;
-
     }
-
 }
-

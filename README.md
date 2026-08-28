@@ -1,36 +1,26 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Offline-First Form Sync
 
-## Getting Started
+This version removes Prisma completely so the project can run on another laptop with only `npm install` and `npm run dev`.
 
-First, run the development server:
+## Run on any laptop
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+No `prisma dev`, `prisma generate`, `prisma db push`, or external database server is required.
 
-You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
+## Sync architecture
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+1. Form data is saved locally in IndexedDB (`offline-form-sync`).
+2. A sync item is added to the local `syncQueue` store.
+3. When the browser is online, `syncProcessor.js` sends `POST /api/sync`.
+4. The server API stores the synced form in `data/server-db.json` using Node's built-in `fs` APIs.
+5. Only after a successful API response do the client records become `SYNCED`.
+6. `syncAuditLogs` records `SYNC_STARTED`, `SYNC_COMPLETED`, or `SYNC_FAILED`.
+7. Stale `SYNCING` queue items can recover back to `PENDING`.
 
-## Learn More
+## Important
 
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+`data/server-db.json` is local to the laptop. This is intentionally a portable local development server store. If you later deploy the app and need multiple devices/laptops to share the same server data, replace this file store with a hosted database/API.
