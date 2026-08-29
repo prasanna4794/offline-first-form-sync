@@ -3,7 +3,7 @@ import "./globals.css";
 import SyncManager from "@/components/sync/SyncManager";
 
 export const metadata = {
-    title: "Dev Microverse",
+    title: "Offline-first-form-sync",
     description: "Form synchronization dashboard",
 };
 
