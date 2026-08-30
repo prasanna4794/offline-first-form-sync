@@ -25,7 +25,7 @@ import {
 
 } from "@/lib/sync/syncProcessor";
 
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 export default function SyncQueuePage() {
 

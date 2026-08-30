@@ -5,7 +5,7 @@ import {
     useState
 
 } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 
 export default function ConflictsPage() {
