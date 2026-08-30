@@ -405,6 +405,14 @@ body {
 }
 
 @media (max-width: 650px) {
+    .activity-page-content p {
+
+    font-size: 11px !important;
+}
+.activity-page-content strong {
+    font-size: 11px !important;
+
+}
     .drafts-page {
         padding: 20px 15px;
     }
@@ -797,6 +805,7 @@ body {
     border-radius: 999px;
     font-size: 13px;
     font-weight: 600;
+    white-space: nowrap;
 }
 
 /* Draft List */
@@ -1039,7 +1048,7 @@ input[type="date"] {
 
 .sync-status-grid {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(2, 1fr);
     gap: 16px;
 }
 
@@ -1129,6 +1138,7 @@ input[type="date"] {
     background: #2dd4bf;
     color: #07111d;
     font-weight: 700;
+    white-space: nowrap;
 }
 
 .sync-now-button:disabled {
@@ -1483,6 +1493,9 @@ input[type="date"] {
 
 .conflicts-header {
     margin-bottom: 28px;
+    display: flex;
+    justify-content: space-between;
+    gap: 5px;
 }
 
 .conflicts-header h1 {
@@ -1496,14 +1509,17 @@ input[type="date"] {
 }
 
 .conflicts-summary-card {
-    max-width: 260px;
+    max-width: 1800px;
     padding: 20px;
     margin-bottom: 24px;
     background: var(--bg-card);
     border: 1px solid var(--border);
     border-radius: 12px;
 }
-
+.refersh {
+    display: flex;
+    gap: 10px;
+}
 .conflicts-summary-card span {
     display: block;
     margin-bottom: 10px;
@@ -1765,6 +1781,9 @@ input[type="date"] {
 
 .settings-header {
     margin-bottom: 30px;
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
 }
 
 .settings-header h1 {
@@ -1778,11 +1797,12 @@ input[type="date"] {
 }
 
 .settings-section {
-    margin-bottom: 20px;
-    padding: 24px;
     background: var(--bg-card);
     border: 1px solid var(--border);
     border-radius: 12px;
+    margin-bottom: 20px;
+    padding: 24px;
+
 }
 
 .settings-section h2 {

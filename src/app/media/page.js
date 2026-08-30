@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 
 export default function MediaPage() {
 
@@ -20,7 +21,13 @@ export default function MediaPage() {
                         searchTerm.toLowerCase()
                     )
         );
+       const router = useRouter();
+    
+   const handleBackToDashboard = () => {
 
+        router.push("/");
+
+    };
 
     return (
 
@@ -28,7 +35,7 @@ export default function MediaPage() {
 
             {/* Header */}
 
-            <div className="media-header">
+            <div className="media-header d-flex justify-content-between gap-2">
 
                 <div>
 
@@ -41,6 +48,16 @@ export default function MediaPage() {
                     </p>
 
                 </div>
+                <div>
+ <button
+                        type="button"
+                        className="secondary-button"
+                        onClick={handleBackToDashboard}
+                    >
+                        Back
+                    </button>
+                </div>
+                
 
             </div>
 

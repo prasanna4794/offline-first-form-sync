@@ -5,6 +5,7 @@ import {
     useState
 
 } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 
 
 export default function ConflictsPage() {
@@ -32,7 +33,13 @@ export default function ConflictsPage() {
 
         };
 
+       const router = useRouter();
+    
+   const handleBackToDashboard = () => {
 
+        router.push("/");
+
+    };
     return (
 
         <main className="conflicts-page">
@@ -52,6 +59,15 @@ export default function ConflictsPage() {
                         Review and resolve synchronization conflicts.
                     </p>
 
+                </div>
+                <div>
+ <button
+                        type="button"
+                        className="secondary-button"
+                        onClick={handleBackToDashboard}
+                    >
+                        Back
+                    </button>
                 </div>
 
             </div>

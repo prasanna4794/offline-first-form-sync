@@ -14,6 +14,7 @@ import {
 
 } from "@/lib/sync/auditLog";
 
+import { useRouter, useSearchParams } from "next/navigation";
 
 export default function ActivityPage() {
 
@@ -25,7 +26,13 @@ export default function ActivityPage() {
 
     ] = useState([]);
 
+       const router = useRouter();
+    
+   const handleBackToDashboard = () => {
 
+        router.push("/");
+
+    };
     const [
 
         loading,
@@ -133,14 +140,24 @@ export default function ActivityPage() {
 
                 </div>
 
-
-                <button
+               <div className="refersh">
+                 <button
                     onClick={loadActivities}
                 >
 
                     Refresh
 
                 </button>
+ <button
+                        type="button"
+                        className="secondary-button"
+                        onClick={handleBackToDashboard}
+                    >
+                        Back
+                    </button>
+
+                </div>
+               
 
             </div>
 

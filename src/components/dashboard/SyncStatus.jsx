@@ -194,7 +194,7 @@ export default function SyncStatus() {
                 </div>
 
 
-                <div className="sync-status-item">
+                {/* <div className="sync-status-item">
 
                     <span>
 
@@ -208,7 +208,7 @@ export default function SyncStatus() {
 
                     </strong>
 
-                </div>
+                </div> */}
 
             </div>
 

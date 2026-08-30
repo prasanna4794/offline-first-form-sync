@@ -6,6 +6,7 @@ import {
     useState
 
 } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 
 
 export default function SettingsPage() {
@@ -44,6 +45,13 @@ export default function SettingsPage() {
         setSaveMessage
 
     ] = useState("");
+      const router = useRouter();
+    
+   const handleBackToDashboard = () => {
+
+        router.push("/");
+
+    };
 
 
     useEffect(() => {
@@ -123,7 +131,7 @@ export default function SettingsPage() {
             {/* Header */}
 
             <div className="settings-header">
-
+                <div>
                 <h1>
                     Settings
                 </h1>
@@ -131,7 +139,18 @@ export default function SettingsPage() {
                 <p>
                     Configure your synchronization preferences.
                 </p>
+                </div>
 
+
+ <div>
+ <button
+                        type="button"
+                        className="secondary-button"
+                        onClick={handleBackToDashboard}
+                    >
+                        Back
+                    </button>
+                </div>
             </div>
 
 
@@ -273,13 +292,9 @@ export default function SettingsPage() {
                     </label>
 
                 </div>
+       {/* Save */}
 
-            </section>
-
-
-            {/* Save */}
-
-            <div className="settings-footer">
+            <div className="settings-footer mt-5">
 
                 {
 
@@ -307,6 +322,10 @@ export default function SettingsPage() {
                 </button>
 
             </div>
+            </section>
+
+
+     
 
         </main>
 
