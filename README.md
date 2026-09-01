@@ -24,14 +24,3 @@ No `prisma dev`, `prisma generate`, `prisma db push`, or external database serve
 ## Important
 
 `data/server-db.json` is local to the laptop. This is intentionally a portable local development server store. If you later deploy the app and need multiple devices/laptops to share the same server data, replace this file store with a hosted database/API.
-
-## Local + Vercel Sync Storage
-
-The app uses IndexedDB in the browser for offline forms, queue, and audit logs. The `/api/sync` endpoint persists synced forms using:
-
-- Local development: `data/server-db.json` when `DATABASE_URL` is not set.
-- Vercel: Neon PostgreSQL when `DATABASE_URL` is set.
-
-No Prisma is required.
-
-For Vercel, configure `DATABASE_URL` and redeploy. Verify the backend with `/api/health`, which should report `storage: "neon"`.

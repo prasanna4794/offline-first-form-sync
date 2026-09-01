@@ -1,18 +1,24 @@
 import { NextResponse } from "next/server";
 import { upsertSyncedForm } from "@/lib/server/formService";
-import { isNeonConfigured } from "@/lib/server/database";
 
 export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
 
 export async function POST(request) {
     try {
         const body = await request.json();
-        const { transactionId, formId, payload } = body;
+
+        const {
+            transactionId,
+            formId,
+            payload
+        } = body;
 
         if (!transactionId || !formId || !payload) {
             return NextResponse.json(
-                { success: false, message: "Invalid sync payload." },
+                {
+                    success: false,
+                    message: "Invalid sync payload."
+                },
                 { status: 400 }
             );
         }
@@ -20,7 +26,7 @@ export async function POST(request) {
         const serverRecord = await upsertSyncedForm({
             formId,
             transactionId,
-            payload,
+            payload
         });
 
         return NextResponse.json({
@@ -29,9 +35,7 @@ export async function POST(request) {
             transactionId,
             serverId: serverRecord.id,
             formId,
-            status: "SYNCED",
-            storage: isNeonConfigured() ? "neon" : "local-file",
-            syncedAt: serverRecord.updatedAt,
+            syncedAt: serverRecord.updatedAt
         });
     } catch (error) {
         console.error("Server sync error:", error);
@@ -39,7 +43,7 @@ export async function POST(request) {
         return NextResponse.json(
             {
                 success: false,
-                message: error?.message || "Server synchronization failed.",
+                message: error?.message || "Server synchronization failed."
             },
             { status: 500 }
         );
