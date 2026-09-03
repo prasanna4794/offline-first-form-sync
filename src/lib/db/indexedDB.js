@@ -1,6 +1,6 @@
 const DB_NAME = "offline-form-sync";
 
-const DB_VERSION = 3;
+const DB_VERSION = 5;
 
 const FORM_STORE = "forms";
 const AUDIT_STORE = "syncAuditLogs";
@@ -8,88 +8,41 @@ const SYNC_QUEUE_STORE = "syncQueue";
 
 
 export function openDatabase() {
+    if (typeof window === "undefined" || !window.indexedDB) {
+        return Promise.reject(new Error("IndexedDB is not available in this browser."));
+    }
 
     return new Promise((resolve, reject) => {
-
-        const request = indexedDB.open(
-            DB_NAME,
-            DB_VERSION
-        );
-
+        const request = indexedDB.open(DB_NAME, DB_VERSION);
 
         request.onupgradeneeded = (event) => {
+            const database = event.target.result;
 
-            const database =
-                event.target.result;
-
-            if (
-                !database.objectStoreNames.contains(
-                    FORM_STORE
-                )
-            ) {
-
-                database.createObjectStore(
-                    FORM_STORE,
-                    {
-                        keyPath: "id"
-                    }
-                );
-
+            if (!database.objectStoreNames.contains(FORM_STORE)) {
+                database.createObjectStore(FORM_STORE, { keyPath: "id" });
             }
 
-
-            if (
-                !database.objectStoreNames.contains(
-                    SYNC_QUEUE_STORE
-                )
-            ) {
-
-                database.createObjectStore(
-                    SYNC_QUEUE_STORE,
-                    {
-                        keyPath: "id"
-                    }
-                );
-
+            if (!database.objectStoreNames.contains(SYNC_QUEUE_STORE)) {
+                database.createObjectStore(SYNC_QUEUE_STORE, { keyPath: "id" });
             }
 
-            if (
-                !database.objectStoreNames.contains(
-                    AUDIT_STORE
-                )
-            ) {
-
-                database.createObjectStore(
-                    AUDIT_STORE,
-                    {
-                        keyPath: "id"
-                    }
-                );
-
+            if (!database.objectStoreNames.contains(AUDIT_STORE)) {
+                database.createObjectStore(AUDIT_STORE, { keyPath: "id" });
             }
-
         };
 
+        request.onblocked = () => {
+            reject(new Error("IndexedDB upgrade is blocked. Close another tab using this app and reload."));
+        };
 
         request.onsuccess = () => {
-
-            resolve(
-                request.result
-            );
-
+            const database = request.result;
+            database.onversionchange = () => database.close();
+            resolve(database);
         };
 
-
-        request.onerror = () => {
-
-            reject(
-                request.error
-            );
-
-        };
-
+        request.onerror = () => reject(request.error || new Error("Failed to open IndexedDB."));
     });
-
 }
 
 

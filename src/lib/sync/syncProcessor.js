@@ -36,7 +36,8 @@ async function syncTransaction(item) {
         });
 
         if (!navigator.onLine) {
-            throw new Error("Internet connection lost before API request.");
+            await updateFormSyncStatus(item.formId, "PENDING");
+            return { success: false, offline: true };
         }
 
         const response = await fetch("/api/sync", {
@@ -81,6 +82,21 @@ async function syncTransaction(item) {
         return { success: true };
     } catch (error) {
         console.error("❌ Sync failed:", item.id, error);
+
+        // Network failures are not permanent failures. Keep the transaction
+        // pending so the browser's online event can retry it later.
+        if (typeof navigator !== "undefined" && !navigator.onLine) {
+            await updateFormSyncStatus(item.formId, "PENDING");
+            await createAuditLog({
+                transactionId: item.id,
+                formId: item.formId,
+                event: "SYNC_WAITING_FOR_NETWORK",
+                status: "PENDING",
+                message: "Waiting for internet connection.",
+                retryCount: item.retryCount || 0,
+            });
+            return { success: false, offline: true };
+        }
 
         const retryCount = item.retryCount || 0;
 
