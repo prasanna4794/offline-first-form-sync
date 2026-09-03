@@ -1,43 +1,46 @@
-# Local + Vercel Sync Setup
+# Vercel + Neon Setup
+
+The app supports both local and Vercel deployments.
 
 ## Local
 
-No database installation is required.
+No database setup is required.
 
 ```bash
 npm install
 npm run dev
 ```
 
-Without `DATABASE_URL`, local development uses `data/server-db.json`.
+Without `DATABASE_URL`, the server API uses `data/server-db.json` for local development. Browser form drafts and the sync queue remain in IndexedDB.
 
 ## Vercel
 
-Vercel cannot use the local JSON file as persistent storage. Add a Neon PostgreSQL database and set:
+Vercel serverless functions must not use the local JSON file for persistent server data. Configure a Neon PostgreSQL database and add its connection string to the Vercel project as:
 
 ```text
-DATABASE_URL=<your Neon connection string>
+DATABASE_URL=your-neon-connection-string
 ```
 
-Set it for Production (and Preview if needed), then redeploy.
+Then redeploy.
 
-The application automatically creates the `offline_forms` table on the first server request.
+The application automatically creates the `forms` table on the first server request. No Prisma and no migration command are required.
 
 ## Verify
 
 Open:
 
 ```text
-/api/health
+https://YOUR-DOMAIN/api/health
 ```
 
-Expected production response:
+A correctly configured Vercel deployment should return JSON containing:
 
 ```json
 {
   "success": true,
-  "storage": "neon"
+  "environment": "vercel",
+  "storage": "neon-postgres"
 }
 ```
 
-Then create a form offline/online and confirm `/api/sync` returns `success: true` and `status: "SYNCED"`.
+Then submit a form while online. The browser queue should move from `PENDING` → `SYNCING` → `SYNCED`, and `/api/forms` should show the server-side record.

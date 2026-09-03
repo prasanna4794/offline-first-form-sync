@@ -1,4 +1,9 @@
-import { getDatabase, saveDatabase } from "./database";
+import {
+    getDatabase,
+    isUsingNeon,
+    saveDatabase,
+    upsertNeonForm,
+} from "./database";
 
 export async function getForms() {
     const database = await getDatabase();
@@ -6,45 +11,63 @@ export async function getForms() {
 }
 
 export async function createForm(formData) {
-    const database = await getDatabase();
-
+    const now = new Date().toISOString();
     const newForm = {
         id: formData.id,
         formId: formData.formId || formData.id,
         transactionId: formData.transactionId || null,
         status: "synced",
-        createdAt: formData.createdAt || new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        data: formData.data || {}
+        createdAt: formData.createdAt || now,
+        updatedAt: now,
+        data: formData.data || {},
     };
 
-    const index = database.forms.findIndex(
-        (form) => form.id === newForm.id
-    );
+    if (isUsingNeon()) {
+        return upsertNeonForm(newForm);
+    }
+
+    const database = await getDatabase();
+    const index = database.forms.findIndex((form) => form.id === newForm.id);
 
     if (index >= 0) {
         database.forms[index] = {
             ...database.forms[index],
             ...newForm,
-            createdAt: database.forms[index].createdAt || newForm.createdAt
+            createdAt: database.forms[index].createdAt || newForm.createdAt,
         };
     } else {
         database.forms.push(newForm);
     }
 
     await saveDatabase(database);
-
     return index >= 0 ? database.forms[index] : newForm;
 }
 
 export async function upsertSyncedForm({
     formId,
     transactionId,
-    payload
+    payload,
 }) {
-    const database = await getDatabase();
     const now = new Date().toISOString();
 
+    if (isUsingNeon()) {
+        const database = await getDatabase();
+        const existing = database.forms.find(
+            (form) => form.formId === formId || form.id === formId
+        );
+
+        return upsertNeonForm({
+            id: existing?.id || formId,
+            formId,
+            transactionId,
+            status: "synced",
+            createdAt: existing?.createdAt || now,
+            updatedAt: now,
+            data: payload,
+        });
+    }
+
+    const database = await getDatabase();
     const index = database.forms.findIndex(
         (form) => form.formId === formId || form.id === formId
     );
@@ -58,7 +81,7 @@ export async function upsertSyncedForm({
         status: "synced",
         createdAt: existing?.createdAt || now,
         updatedAt: now,
-        data: payload
+        data: payload,
     };
 
     if (index >= 0) {
@@ -68,6 +91,5 @@ export async function upsertSyncedForm({
     }
 
     await saveDatabase(database);
-
     return syncedForm;
 }

@@ -14,7 +14,7 @@ import {
 
 } from "@/lib/sync/auditLog";
 
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 
 export default function ActivityPage() {
 
